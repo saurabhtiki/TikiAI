@@ -1,0 +1,50 @@
+[theme]
+font = "sans-serif"        # Source Sans (default)
+headingFont = "serif"      # Source Serif for headings
+codeFont = "monospace"     # Source Code for code blocks
+baseFontSize = 16     # Root font size in pixels
+baseFontWeight = 400    
+primaryColor = "0d99ff"          # Spotify green
+#backgroundColor = "#121212"
+secondaryBackgroundColor = "#faf6f6ff"
+#textColor = "#ffffff"
+linkColor = "#09cd4dff"
+borderColor = "#4ff768ad"
+#showWidgetBorder = true
+showSidebarBorder = true
+baseRadius = "0.3rem"
+buttonRadius = "large"
+headingFontWeights = [600, 500, 500, 500, 500, 500]
+headingFontSizes = ["3rem", "2.5rem", "2.25rem", "2rem", "1.5rem"]
+chartCategoricalColors = ["#ffc862", "#2d46b9", "#b49bc8"]
+dataframeHeaderBackgroundColor = "#f4ede9ff"
+dataframeBorderColor = "#704b3dff"
+
+[theme.dark]
+backgroundColor = "#121212"
+primaryColor="#8db0faff"
+secondaryBackgroundColor = "#5b5959ff"
+textColor = "#ffffff"
+dataframeHeaderBackgroundColor = "#704b3dff"
+
+[theme.light]
+
+[theme.sidebar]
+backgroundColor = "#f7f5f5ff"
+secondaryBackgroundColor = "#d4eaf7ff"
+codeBackgroundColor = "#b5b0b0ff"
+borderColor = "#04015bff"
+
+
+[theme.dark.sidebar]
+backgroundColor = "#0e0e0eff"
+secondaryBackgroundColor = "#615f5fff"
+codeBackgroundColor = "#2a2a2a"
+borderColor = "#cbcaf7ff"
+
+[server]
+enableStaticServing = true
+
+[client]
+toolbarMode = "developer"
+showSidebarNavigation = false
