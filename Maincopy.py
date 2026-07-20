@@ -30,6 +30,9 @@ EMAIL_PATTERN = re.compile(
 )
 
 # Initialize session state
+if "show_user_mgnt" not in st.session_state:
+    st.session_state.show_user_mgnt = False
+
 if "task_select" not in st.session_state:
     st.session_state.task_select = ""
 
@@ -101,7 +104,9 @@ if st.session_state.is_authenticated==True:
     if st.session_state.user_type == "admin":
         st.sidebar.divider()
         if st.sidebar.button(":material/manage_accounts: User Management", use_container_width=True,key="user_mgmt_btn"):
-            st.session_state.task_select = "User Management"
+            st.session_state.show_user_mgnt = True
+            
+            
         st.sidebar.divider()
     
     all_pages = {
@@ -119,17 +124,20 @@ if st.session_state.is_authenticated==True:
         all_pages = user_pages
     task_select = st.sidebar.selectbox(
         "📋Choose a Task",
-        list(all_pages.keys()),
+        list(user_pages.keys()),
         placeholder="Type to Search for a Task...",
         key="task_select",
-        index=None
+        index=None,on_change=lambda: st.session_state.update({"show_user_mgnt": False})
     )
 
     # Handle User Management navigation from button click
-    if st.session_state.get("task_select") == "User Management":
+    if st.session_state.show_user_mgnt==True:
+        placeholder.empty()
         pg = st.navigation([st.Page(all_pages["User Management"], title="User Management")])
         pg.run()
     elif task_select is not None:
+
+        placeholder.empty()
         pg = st.navigation([st.Page(all_pages[task_select], title=task_select)])
         pg.run()
     else:

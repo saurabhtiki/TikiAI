@@ -1,0 +1,150 @@
+{
+  "tasks": {
+    "employee_master": {
+      "label": "Employee Master",
+      "skip_top_rows": 0,
+      "skip_bottom_rows": 0,
+      "strict_columns": true,
+      "primary_key": ["employee_id"],
+      "unique_together": [
+        ["name", "department"]
+      ],
+      "foreign_keys": [],
+      "columns": {
+        "employee_id": {
+          "dtype": "int",
+          "required": true,
+          "unique": true,
+          "min": 1
+        },
+        "name": {
+          "dtype": "str",
+          "required": true
+        },
+        "email": {
+          "dtype": "str",
+          "required": true,
+          "unique": true,
+          "regex": "^[\\w.-]+@[\\w.-]+\\.\\w+$"
+        },
+        "department": {
+          "dtype": "str",
+          "required": true,
+          "allowed": ["Sales", "Engineering", "HR", "Finance", "Marketing"]
+        },
+        "hire_date": {
+          "dtype": "date",
+          "required": true,
+          "min": "2000-01-01",
+          "max": "2026-12-31"
+        }
+      }
+    },
+
+    "salary": {
+      "label": "Salary",
+      "skip_top_rows": 0,
+      "skip_bottom_rows": 0,
+      "strict_columns": true,
+      "primary_key": [],
+      "unique_together": [
+        ["employee_id", "month"]
+      ],
+      "foreign_keys": [
+        {
+          "columns": ["employee_id"],
+          "references_dataset": "employee_master",
+          "references_columns": ["employee_id"]
+        }
+      ],
+      "columns": {
+        "employee_id": {
+          "dtype": "int",
+          "required": true
+        },
+        "month": {
+          "dtype": "str",
+          "required": true,
+          "regex": "^\\d{4}-\\d{2}$"
+        },
+        "basic_salary": {
+          "dtype": "float",
+          "required": true,
+          "min": 0,
+          "max": 1000000
+        },
+        "bonus": {
+          "dtype": "float",
+          "required": false,
+          "min": 0
+        }
+      }
+    },
+
+    "attendance": {
+      "label": "Attendance",
+      "skip_top_rows": 0,
+      "skip_bottom_rows": 0,
+      "strict_columns": false,
+      "primary_key": [],
+      "unique_together": [
+        ["employee_id", "date"]
+      ],
+      "foreign_keys": [
+        {
+          "columns": ["employee_id"],
+          "references_dataset": "employee_master",
+          "references_columns": ["employee_id"]
+        }
+      ],
+      "columns": {
+        "employee_id": {
+          "dtype": "int",
+          "required": true
+        },
+        "date": {
+          "dtype": "date",
+          "required": true
+        },
+        "status": {
+          "dtype": "str",
+          "required": true,
+          "allowed": ["Present", "Absent", "Leave", "Half Day"]
+        }
+      }
+    },
+    "department_budget": {
+      "label": "Department Budget",
+      "skip_top_rows": 0,
+      "skip_bottom_rows": 0,
+      "strict_columns": true,
+      "primary_key": ["department", "year"],
+      "unique_together": [],
+      "foreign_keys": [],
+      "columns": {
+        "department": {
+          "dtype": "str",
+          "required": true,
+          "allowed": ["Sales", "Engineering", "HR", "Finance", "Marketing"]
+        },
+        "year": {
+          "dtype": "int",
+          "required": true,
+          "min": 2000,
+          "max": 2100
+        },
+        "budget_amount": {
+          "dtype": "float",
+          "required": true,
+          "min": 0
+        }
+      },
+      "backup": {
+        "backupList": [
+          "data",
+          "Main.py"
+          ]
+      }
+    }
+  }
+}
