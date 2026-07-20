@@ -10,6 +10,14 @@ import pandas as pd
 import streamlit as st
 from openpyxl import load_workbook
 
+from utils.auth_db import init_db, seed_from_streamlit_secrets_if_empty, get_user_type
+
+# Ensure DB exists and seed it once from current Streamlit secrets.
+# After this migration, SQLite becomes the source of truth.
+init_db()
+seed_from_streamlit_secrets_if_empty()
+
+
 st.set_page_config(
     page_title="Tikitar",
     page_icon=Image.open("static/tikitar-logo.webp"),
@@ -22,6 +30,9 @@ EMAIL_PATTERN = re.compile(
 )
 
 # Initialize session state
+if "show_user_mgnt" not in st.session_state:
+    st.session_state.show_user_mgnt = False
+
 if "task_select" not in st.session_state:
     st.session_state.task_select = ""
 
@@ -53,17 +64,8 @@ def logout_user():
     st.session_state.task_select = ""
 
 
-def get_authorized_lists():
-    authorized_users = st.secrets.get("authorized_users", [])
-    authorized_admins = st.secrets.get("authorized_admins", [])
-
-    return (
-        [email.strip().lower() for email in authorized_users if isinstance(email, str)],
-        [email.strip().lower() for email in authorized_admins if isinstance(email, str)],
-    )
-
-
 # Login screen first
+
 if not st.session_state.is_authenticated:
     with placeholder.container():
         st.subheader("Login")
@@ -81,20 +83,15 @@ if not st.session_state.is_authenticated:
                 if not EMAIL_PATTERN.fullmatch(normalized_email):
                     st.error("Please enter a valid email address.")
                 else:
-                    authorized_users, authorized_admins = get_authorized_lists()
-
-                    if normalized_email in authorized_admins:
+                    user_type = get_user_type(normalized_email)
+                    if user_type is not None:
                         st.session_state.user_email = normalized_email
-                        st.session_state.user_type = "admin"
-                        st.session_state.is_authenticated = True
-                        st.success("Login successful")
-                    elif normalized_email in authorized_users:
-                        st.session_state.user_email = normalized_email
-                        st.session_state.user_type = "user"
+                        st.session_state.user_type = user_type
                         st.session_state.is_authenticated = True
                         st.success("Login successful")
                     else:
                         st.error("Not Authorised to access")
+
 
     #st.rerun()
 
@@ -102,20 +99,45 @@ if not st.session_state.is_authenticated:
 if st.session_state.is_authenticated==True:
     st.sidebar.button(":red[⏻ Logout]", key="logout_btn", on_click=logout_user)
     st.sidebar.write(f"Logged in as: {st.session_state.user_email} ({st.session_state.user_type})")
+    
+    # Admin-only: User Management button
+    if st.session_state.user_type == "admin":
+        st.sidebar.divider()
+        if st.sidebar.button(":material/manage_accounts: User Management", use_container_width=True,key="user_mgmt_btn"):
+            st.session_state.show_user_mgnt = True
+            
+            
+        st.sidebar.divider()
+    
     all_pages = {
         "2B-Purchase-Reco": "pages/reco2B.py",
-        "Reconcile Any Data": "pages/reco_any.py"
+        "Reconcile Any Data": "pages/reco_any.py",
+        "User Management": "pages/user_management.py"
     }
 
+    user_pages = {
+        "2B-Purchase-Reco": "pages/reco2B.py",
+        "Reconcile Any Data": "pages/reco_any.py"
+        #"User Management": "pages/user_management.py"
+    }
+    if st.session_state.user_type == "user":
+        all_pages = user_pages
     task_select = st.sidebar.selectbox(
         "📋Choose a Task",
-        list(all_pages.keys()),
+        list(user_pages.keys()),
         placeholder="Type to Search for a Task...",
         key="task_select",
-        index=None
+        index=None,on_change=lambda: st.session_state.update({"show_user_mgnt": False})
     )
 
-    if task_select is not None:
+    # Handle User Management navigation from button click
+    if st.session_state.show_user_mgnt==True:
+        placeholder.empty()
+        pg = st.navigation([st.Page(all_pages["User Management"], title="User Management")])
+        pg.run()
+    elif task_select is not None:
+
+        placeholder.empty()
         pg = st.navigation([st.Page(all_pages[task_select], title=task_select)])
         pg.run()
     else:
