@@ -5,9 +5,14 @@
       "skip_top_rows": 0,
       "skip_bottom_rows": 0,
       "strict_columns": true,
-      "primary_key": ["employee_id"],
+      "primary_key": [
+        "employee_id"
+      ],
       "unique_together": [
-        ["name", "department"]
+        [
+          "name",
+          "department"
+        ]
       ],
       "foreign_keys": [],
       "columns": {
@@ -30,7 +35,13 @@
         "department": {
           "dtype": "str",
           "required": true,
-          "allowed": ["Sales", "Engineering", "HR", "Finance", "Marketing"]
+          "allowed": [
+            "Sales",
+            "Engineering",
+            "HR",
+            "Finance",
+            "Marketing"
+          ]
         },
         "hire_date": {
           "dtype": "date",
@@ -40,7 +51,6 @@
         }
       }
     },
-
     "salary": {
       "label": "Salary",
       "skip_top_rows": 0,
@@ -48,13 +58,20 @@
       "strict_columns": true,
       "primary_key": [],
       "unique_together": [
-        ["employee_id", "month"]
+        [
+          "employee_id",
+          "month"
+        ]
       ],
       "foreign_keys": [
         {
-          "columns": ["employee_id"],
+          "columns": [
+            "employee_id"
+          ],
           "references_dataset": "employee_master",
-          "references_columns": ["employee_id"]
+          "references_columns": [
+            "employee_id"
+          ]
         }
       ],
       "columns": {
@@ -80,7 +97,6 @@
         }
       }
     },
-
     "attendance": {
       "label": "Attendance",
       "skip_top_rows": 0,
@@ -88,13 +104,20 @@
       "strict_columns": false,
       "primary_key": [],
       "unique_together": [
-        ["employee_id", "date"]
+        [
+          "employee_id",
+          "date"
+        ]
       ],
       "foreign_keys": [
         {
-          "columns": ["employee_id"],
+          "columns": [
+            "employee_id"
+          ],
           "references_dataset": "employee_master",
-          "references_columns": ["employee_id"]
+          "references_columns": [
+            "employee_id"
+          ]
         }
       ],
       "columns": {
@@ -109,7 +132,12 @@
         "status": {
           "dtype": "str",
           "required": true,
-          "allowed": ["Present", "Absent", "Leave", "Half Day"]
+          "allowed": [
+            "Present",
+            "Absent",
+            "Leave",
+            "Half Day"
+          ]
         }
       }
     },
@@ -118,14 +146,23 @@
       "skip_top_rows": 0,
       "skip_bottom_rows": 0,
       "strict_columns": true,
-      "primary_key": ["department", "year"],
+      "primary_key": [
+        "department",
+        "year"
+      ],
       "unique_together": [],
       "foreign_keys": [],
       "columns": {
         "department": {
           "dtype": "str",
           "required": true,
-          "allowed": ["Sales", "Engineering", "HR", "Finance", "Marketing"]
+          "allowed": [
+            "Sales",
+            "Engineering",
+            "HR",
+            "Finance",
+            "Marketing"
+          ]
         },
         "year": {
           "dtype": "int",
@@ -138,13 +175,13 @@
           "required": true,
           "min": 0
         }
-      },
-      "backup": {
-        "backupList": [
-          "data",
-          "Main.py"
-          ]
       }
+    },
+    "backup": {
+      "backupList": [
+        "data",
+        "Main.py"
+      ]
     }
   }
 }

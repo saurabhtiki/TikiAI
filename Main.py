@@ -33,6 +33,9 @@ EMAIL_PATTERN = re.compile(
 if "show_user_mgnt" not in st.session_state:
     st.session_state.show_user_mgnt = False
 
+if "show_schema_mgnt" not in st.session_state:
+    st.session_state.show_schema_mgnt = False
+
 if "task_select" not in st.session_state:
     st.session_state.task_select = ""
 
@@ -62,6 +65,8 @@ def logout_user():
     st.session_state.user_type = ""
     st.session_state.is_authenticated = False
     st.session_state.task_select = ""
+    st.session_state.show_user_mgnt = False
+    st.session_state.show_schema_mgnt = False
 
 
 # Login screen first
@@ -92,9 +97,6 @@ if not st.session_state.is_authenticated:
                     else:
                         st.error("Not Authorised to access")
 
-
-    #st.rerun()
-
 # Sidebar logout button after successful login if user is authenticated
 if st.session_state.is_authenticated==True:
     st.sidebar.button(":red[⏻ Logout]", key="logout_btn", on_click=logout_user)
@@ -103,16 +105,23 @@ if st.session_state.is_authenticated==True:
     # Admin-only: User Management button
     if st.session_state.user_type == "admin":
         st.sidebar.divider()
-        if st.sidebar.button(":material/manage_accounts: User Management", use_container_width=True,key="user_mgmt_btn"):
+        if st.sidebar.button(":material/manage_accounts: User Management", width="stretch", key="user_mgmt_btn"):
             st.session_state.show_user_mgnt = True
+            st.session_state.show_schema_mgnt = False
+
+        if st.sidebar.button(":material/settings: Schema Management", width="stretch", key="schema_mgmt_btn"):
+            st.session_state.show_schema_mgnt = True
+            st.session_state.show_user_mgnt = False
             
+         #button for backup on click download backup files
             
         st.sidebar.divider()
     
     all_pages = {
         "2B-Purchase-Reco": "pages/reco2B.py",
         "Reconcile Any Data": "pages/reco_any.py",
-        "User Management": "pages/user_management.py"
+        "User Management": "pages/user_management.py",
+        "Schema Management": "pages/schema_management.py"
     }
 
     user_pages = {
@@ -127,11 +136,16 @@ if st.session_state.is_authenticated==True:
         list(user_pages.keys()),
         placeholder="Type to Search for a Task...",
         key="task_select",
-        index=None,on_change=lambda: st.session_state.update({"show_user_mgnt": False})
+        index=None,
+        on_change=lambda: st.session_state.update({"show_user_mgnt": False, "show_schema_mgnt": False})
     )
 
     # Handle User Management navigation from button click
-    if st.session_state.show_user_mgnt==True:
+    if st.session_state.show_schema_mgnt==True:
+        placeholder.empty()
+        pg = st.navigation([st.Page(all_pages["Schema Management"], title="Schema Management")])
+        pg.run()
+    elif st.session_state.show_user_mgnt==True:
         placeholder.empty()
         pg = st.navigation([st.Page(all_pages["User Management"], title="User Management")])
         pg.run()
