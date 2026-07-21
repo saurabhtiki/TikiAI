@@ -2,7 +2,7 @@
 font = "sans-serif"        # Source Sans (default)
 headingFont = "serif"      # Source Serif for headings
 codeFont = "monospace"     # Source Code for code blocks
-baseFontSize = 16     # Root font size in pixels
+baseFontSize = 14     # Root font size in pixels
 baseFontWeight = 400    
 primaryColor = "0d99ff"          # Spotify green
 #backgroundColor = "#121212"

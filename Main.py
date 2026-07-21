@@ -134,11 +134,11 @@ if not st.session_state.is_authenticated:
 # Sidebar logout button after successful login if user is authenticated
 if st.session_state.is_authenticated==True:
     st.sidebar.button(":red[⏻ Logout]", key="logout_btn", on_click=logout_user)
-    st.sidebar.write(f"Logged in as: {st.session_state.user_email} ({st.session_state.user_type})")
+    st.sidebar.write(f"Logged in as: {st.session_state.user_email}")
     
     # Admin-only: User Management button
     if st.session_state.user_type == "admin":
-        st.sidebar.divider()
+        #st.sidebar.divider()
         if st.sidebar.button(":material/manage_accounts: User Management", width="stretch", key="user_mgmt_btn"):
             st.session_state.show_user_mgnt = True
             st.session_state.show_schema_mgnt = False
@@ -165,27 +165,31 @@ if st.session_state.is_authenticated==True:
                     mime="application/zip",
                     key="download_backup_btn"
                 ):
+                    st.toast("Backup downloaded successfully!", icon="✅")
                     st.session_state.backup_ready = False
                     st.session_state.backup_zip = None
-                    st.toast("Backup downloaded successfully!", icon="✅")
-        st.sidebar.divider()
+                    
+        
     
     all_pages = {
         "2B-Purchase-Reco": "pages/reco2B.py",
         "Reconcile Any Data": "pages/reco_any.py",
+        "Add Files": "pages/add_files.py",
         "User Management": "pages/user_management.py",
         "Schema Management": "pages/schema_management.py"
     }
 
     user_pages = {
         "2B-Purchase-Reco": "pages/reco2B.py",
-        "Reconcile Any Data": "pages/reco_any.py"
+        "Reconcile Any Data": "pages/reco_any.py",
+        "Add Files": "pages/add_files.py"
         #"User Management": "pages/user_management.py"
     }
     if st.session_state.user_type == "user":
         all_pages = user_pages
+    st.sidebar.divider()
     task_select = st.sidebar.selectbox(
-        "📋Choose a Task",
+        "🛠️ Tools & Utilities",
         list(user_pages.keys()),
         placeholder="Type to Search for a Task...",
         key="task_select",

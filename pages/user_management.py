@@ -233,10 +233,15 @@ def render_user_management():
     selected_rows = edited_df.get("selection", {}).get("rows", [])
     
     if selected_rows:
-        # Get selected user details
         selected_idx = selected_rows[0]
-        selected_email = df.iloc[selected_idx]["email"]
-        selected_type = df.iloc[selected_idx]["user_type"]
+        
+        # Guard: selection index may be stale after delete + rerun
+        try:
+            selected_email = df.iloc[selected_idx]["email"]
+            selected_type = df.iloc[selected_idx]["user_type"]
+        except IndexError:
+            #st.rerun()
+            return
         
         # Show action buttons only when row is selected
         col1, col2, col3 = st.columns([1, 1, 3])
