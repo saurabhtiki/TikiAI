@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 from openpyxl import load_workbook
+import zipfile
 
 from utils.auth_db import init_db, seed_from_streamlit_secrets_if_empty, get_user_type
 
@@ -67,8 +68,41 @@ def logout_user():
     st.session_state.task_select = ""
     st.session_state.show_user_mgnt = False
     st.session_state.show_schema_mgnt = False
+    st.session_state.backup_zip = None
+    st.session_state.backup_ready = False
 
+if "backup_zip" not in st.session_state:
+    st.session_state.backup_zip = None
 
+if "backup_ready" not in st.session_state:
+    st.session_state.backup_ready = False
+
+def create_backup_zip():
+    settings_path = Path("data/settings.json")
+    with open(settings_path, "r", encoding="utf-8") as f:
+        settings = json.load(f)
+
+    backup_list = settings.get("tasks", {}).get("backup", {}).get("backupList", [])
+    if not backup_list:
+        raise ValueError("No backup paths configured in settings.json")
+
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for entry in backup_list:
+            path = Path(entry)
+            if not path.exists():
+                raise FileNotFoundError(f"Backup path not found: {entry}")
+
+            if path.is_file():
+                zf.write(path, path.name)
+            elif path.is_dir():
+                for file_path in sorted(path.rglob("*")):
+                    if file_path.is_file():
+                        arcname = str(file_path.relative_to(path.parent))
+                        zf.write(file_path, arcname)
+
+    buffer.seek(0)
+    return buffer
 # Login screen first
 
 if not st.session_state.is_authenticated:
@@ -114,7 +148,26 @@ if st.session_state.is_authenticated==True:
             st.session_state.show_user_mgnt = False
             
          #button for backup on click download backup files
-            
+        if st.sidebar.button(":material/backup: Backup", width="stretch", key="backup_btn"):
+            try:
+                zip_buffer = create_backup_zip()
+                st.session_state.backup_zip = zip_buffer.getvalue()
+                st.session_state.backup_ready = True
+                st.toast("Backup created successfully!", icon="✅")
+            except Exception as e:
+                st.toast(f"Backup failed: {str(e)}", icon="❌")
+
+            if st.session_state.get("backup_ready"):
+                if st.sidebar.download_button(
+                    "📥 Download Backup",
+                    data=st.session_state.backup_zip,
+                    file_name=f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+                    mime="application/zip",
+                    key="download_backup_btn"
+                ):
+                    st.session_state.backup_ready = False
+                    st.session_state.backup_zip = None
+                    st.toast("Backup downloaded successfully!", icon="✅")
         st.sidebar.divider()
     
     all_pages = {
