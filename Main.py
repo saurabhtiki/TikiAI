@@ -52,7 +52,7 @@ if "is_authenticated" not in st.session_state:
 # Header
 with st.container(horizontal=True):
     st.image(Image.open("static/tikitar-logo.webp"), width=80)
-    if st.session_state.task_select == "":
+    if st.session_state.task_select == "" or st.session_state.task_select is None:
         st.header(":blue[Tikitar-Task Automation]")
     else:
         st.header(f":blue[Tikitar-Task Automation : {st.session_state.task_select}]")
