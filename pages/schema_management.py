@@ -259,9 +259,16 @@ with tab_json:
                 icon=":material/data_object:",
                 on_click=format_settings,
             )
+            
             st.form_submit_button(
                 "Reload from file",
                 icon=":material/refresh:",
                 on_click=reload_settings,
             )
-
+    #download button to download the settings.json file
+    st.download_button(
+                "Download settings.json",key="download_settings_btn",
+                data=st.session_state.settings_json_text,
+                file_name="settings.json",
+                mime="application/json",
+            )

@@ -9,7 +9,7 @@ import utils.recon_core_reco as rc
 st.set_page_config(page_title="Universal Reconciliation Tool", layout="wide")
 
 st.title("↔️ Universal Reconciliation Tool")
-st.write(
+st.sidebar.write(
     "Upload a **Left** and a **Right** dataset, pick the columns that identify a matching "
     "record (mapping columns) and the numeric columns to reconcile, set a rounding-off "
     "tolerance, and reconcile."

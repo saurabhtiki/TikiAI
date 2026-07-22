@@ -25,25 +25,24 @@ import io
 import pandas as pd
 import streamlit as st
 
-from generic_pdf_extractor import extract_pdf_to_json
+from utils.generic_pdf_extractor import extract_pdf_to_json
 
 st.set_page_config(page_title="PDF -> Excel Extractor", layout="wide")
-st.title("PDF -> Excel Extractor")
-st.caption("Generic tool: works with any batch of similarly-formatted PDFs — invoices, returns, forms, certificates, etc.")
+st.title("🗂️PDF -> Excel Extractor")
 
-st.markdown(
+st.sidebar.markdown(
     """
-    **Steps:** 1) Upload PDFs &nbsp;→&nbsp; 2) Review extracted fields &nbsp;→&nbsp;
-    3) Upload a mapping Excel (Output Column Name | JSON Key) &nbsp;→&nbsp; 4) Download consolidated Excel.
+    **Steps:** 1) Upload PDFs ; 2) Review extracted fields;
+    3) Upload a mapping Excel (Output Column Name | JSON Key) ; 4) Download consolidated Excel.
     """
 )
 
 # ---------------------------------------------------------------------------
 # Step 1: Upload PDFs
 # ---------------------------------------------------------------------------
-st.header("1. Upload PDF(s)")
+st.header("📤Upload PDF(s)")
 pdf_files = st.file_uploader(
-    "Upload one or more PDFs (same layout/template as each other)",
+    "Upload one or more PDFs **(ALL Files must have same Layout/Sturcture )**",
     type=["pdf"],
     accept_multiple_files=True,
 )
@@ -57,28 +56,44 @@ if pdf_files:
         except Exception as e:
             st.error(f"Failed to parse {f.name}: {e}")
 
-    st.success(f"Parsed {len(extracted)} file(s).")
+    st.toast(f"Parsed {len(extracted)} file(s).", icon="✅",duration="short")
 
     # ---------------------------------------------------------------------
     # Step 2: Review extracted fields
     # ---------------------------------------------------------------------
-    st.header("2. Review extracted fields")
+    st.header("☑️Review Extracted Fields")
     st.caption(
-        "Field names come straight from labels found in the PDF. Complex tables with "
-        "wrapped/multi-line headers can produce imperfect column names — check the "
-        "value next to each key if a name looks unclear."
+        "Field names come straight from labels found in the PDF, prefixed with 'T1 |', "
+        "'T2 |', ... showing which table (in document order) each field came from. Tables "
+        "that repeat their column header across pages (common for long tables) are "
+        "recognized and merged into one table number, so the same field keeps the same "
+        "key across every file in a batch, however the file happens to paginate. "
+        "Complex tables with wrapped/multi-line headers can still produce a slightly long "
+        "column name — check the value next to each key if one looks unclear."
     )
 
     with st.expander("Preview extracted data per file", expanded=False):
         preview_file = st.selectbox("Choose a file to preview", list(extracted.keys()))
         st.json(extracted[preview_file])
 
-    all_keys = sorted({k for d in extracted.values() for k in d.keys()})
-    st.write(f"**{len(all_keys)} unique fields found across {len(extracted)} file(s):**")
+    all_keys_ci = {}  # lowercased key -> first-seen-cased key
+    for d in extracted.values():
+        for k in d.keys():
+            all_keys_ci.setdefault(k.lower(), k)
+    all_keys = sorted(all_keys_ci.values())
+    st.write(f"**{len(all_keys)} unique fields found across {len(extracted)} file(s)** (case differences merged):")
+    def _ci_example_value(key):
+        lk = key.lower()
+        for d in extracted.values():
+            for k, v in d.items():
+                if k.lower() == lk:
+                    return v
+        return ""
+
     keys_df = pd.DataFrame(
         {
             "json_key": all_keys,
-            "example_value": [extracted[list(extracted.keys())[0]].get(k, "") for k in all_keys],
+            "example_value": [_ci_example_value(k) for k in all_keys],
         }
     )
     st.dataframe(keys_df, use_container_width=True, height=300)
@@ -88,9 +103,10 @@ if pdf_files:
     starter_map = pd.DataFrame({"Output Column Name": all_keys, "JSON Key": all_keys})
     starter_buf = io.BytesIO()
     starter_map.to_excel(starter_buf, index=False)
+    st.subheader("⬇️:green[Download Sample Mapping Excel]")
     st.download_button(
-        "Download starter mapping Excel (all fields, edit as needed)",
-        data=starter_buf.getvalue(),
+        "Download Mapping Excel",
+        data=starter_buf.getvalue(),key="download_mapping_btn",
         file_name="starter_mapping.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
@@ -98,7 +114,7 @@ if pdf_files:
 # ---------------------------------------------------------------------------
 # Step 3: Upload mapping Excel
 # ---------------------------------------------------------------------------
-st.header("3. Upload mapping Excel")
+st.header("📄Upload mapping Excel")
 st.caption("Two columns required — Col A: output column header, Col B: JSON key (copy from the field list above).")
 mapping_file = st.file_uploader("Upload mapping Excel (.xlsx)", type=["xlsx"], key="mapping")
 
@@ -112,19 +128,32 @@ if mapping_file:
 # ---------------------------------------------------------------------------
 # Step 4: Generate output
 # ---------------------------------------------------------------------------
-st.header("4. Generate output Excel")
+st.header("📅Generate output Excel")
 
 if extracted and mapping_df is not None:
     if st.button("Generate Output Excel", type="primary"):
+        # Per-file case-insensitive lookup index, since casing of the same
+        # field can vary slightly between PDFs (e.g. a template tweak).
+        ci_indexes = {fname: {k.lower(): k for k in d.keys()} for fname, d in extracted.items()}
+
         rows = []
         for fname, data in extracted.items():
-            row = {}
+            base_name = fname.rsplit(".", 1)[0] if "." in fname else fname
+            ci_index = ci_indexes[fname]
             for _, m in mapping_df.iterrows():
                 col_name = str(m["output_column"]).strip()
                 json_key = str(m["json_key"]).strip()
-                val = data.get(json_key)
-                row[col_name] = val if val not in (None, "") else 0
-            rows.append(row)
+                actual_key = ci_index.get(json_key.lower(), json_key)
+                val = data.get(actual_key)
+                val = val if val not in (None, "") else 0
+                rows.append(
+                    {
+                        "Filename": base_name,
+                        "output_column": col_name,
+                        "json_key": json_key,
+                        "value": val,
+                    }
+                )
 
         out_df = pd.DataFrame(rows)
         st.dataframe(out_df, use_container_width=True)
@@ -139,4 +168,4 @@ if extracted and mapping_df is not None:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 else:
-    st.info("Upload PDF(s) and a mapping Excel above to enable output generation.")
+    st.error("Upload PDF(s) and a mapping Excel above to enable output generation.")

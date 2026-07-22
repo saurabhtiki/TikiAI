@@ -6,7 +6,9 @@ from datetime import datetime
 st.set_page_config(page_title="Add Files", layout="wide")
 
 st.header("➕:blue[Add Files]")
-
+st.sidebar.write(
+    "Upload a **Excel** Files.All Files should have **same structure and same columns**. You can also specify the number of rows to skip from the top and bottom of each file."
+)
 with st.form("add_files_form"):
     uploaded_files = st.file_uploader(
         "Upload Excel files",
