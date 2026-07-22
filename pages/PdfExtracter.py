@@ -28,7 +28,7 @@ import streamlit as st
 from utils.generic_pdf_extractor import extract_pdf_to_json
 
 st.set_page_config(page_title="PDF -> Excel Extractor", layout="wide")
-st.title("🗂️PDF -> Excel Extractor")
+st.header("🗂️PDF -> Excel Extractor")
 
 st.sidebar.markdown(
     """
@@ -40,7 +40,7 @@ st.sidebar.markdown(
 # ---------------------------------------------------------------------------
 # Step 1: Upload PDFs
 # ---------------------------------------------------------------------------
-st.header("📤Upload PDF(s)")
+st.subheader("📤Upload PDF(s)")
 pdf_files = st.file_uploader(
     "Upload one or more PDFs **(ALL Files must have same Layout/Sturcture )**",
     type=["pdf"],
@@ -61,7 +61,7 @@ if pdf_files:
     # ---------------------------------------------------------------------
     # Step 2: Review extracted fields
     # ---------------------------------------------------------------------
-    st.header("☑️Review Extracted Fields")
+    st.subheader("☑️Review Extracted Fields")
     st.caption(
         "Field names come straight from labels found in the PDF, prefixed with 'T1 |', "
         "'T2 |', ... showing which table (in document order) each field came from. Tables "
@@ -114,7 +114,7 @@ if pdf_files:
 # ---------------------------------------------------------------------------
 # Step 3: Upload mapping Excel
 # ---------------------------------------------------------------------------
-st.header("📄Upload mapping Excel")
+st.subheader("📄Upload mapping Excel")
 st.caption("Two columns required — Col A: output column header, Col B: JSON key (copy from the field list above).")
 mapping_file = st.file_uploader("Upload mapping Excel (.xlsx)", type=["xlsx"], key="mapping")
 
@@ -128,7 +128,7 @@ if mapping_file:
 # ---------------------------------------------------------------------------
 # Step 4: Generate output
 # ---------------------------------------------------------------------------
-st.header("📅Generate output Excel")
+st.subheader("📅Generate output Excel")
 
 if extracted and mapping_df is not None:
     if st.button("Generate Output Excel", type="primary"):
