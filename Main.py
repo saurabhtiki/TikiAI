@@ -177,14 +177,16 @@ if st.session_state.is_authenticated==True:
         "Add Files": "pages/add_files.py",
         "PDF Extractor": "pages/PdfExtracter.py",
         "User Management": "pages/user_management.py",
-        "Schema Management": "pages/schema_management.py"
+        "Schema Management": "pages/schema_management.py",
+        "Data Visualisation": "pages/charts.py"
     }
 
     user_pages = {
         "2B-Purchase-Reco": "pages/reco2B.py",
         "Reconcile Any Data": "pages/reco_any.py",
         "Add Files": "pages/add_files.py",
-        "PDF Extractor": "pages/PdfExtracter.py"
+        "PDF Extractor": "pages/PdfExtracter.py",
+        "Data Visualisation": "pages/charts.py"
         #"User Management": "pages/user_management.py"
     }
     if st.session_state.user_type == "user":
