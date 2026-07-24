@@ -160,7 +160,7 @@ if st.session_state.is_authenticated==True:
             }),
         )
         st.button(":red[⏻ Logout]", key="logout_btn", on_click=logout_user)
-    st.sidebar.write(f":green[Logged in as: {st.session_state.user_name}]")
+    st.sidebar.write(f":green[Logged in as:**{st.session_state.user_name}**]")
 
     
     # Super-admin-only: User Management button
