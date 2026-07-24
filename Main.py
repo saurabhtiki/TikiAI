@@ -11,7 +11,7 @@ import streamlit as st
 from openpyxl import load_workbook
 import zipfile
 
-from utils.auth_db import init_db, seed_from_streamlit_secrets_if_empty, get_user_type
+from utils.auth_db import authenticate_user, init_db, seed_from_streamlit_secrets_if_empty
 
 # Ensure DB exists and seed it once from current Streamlit secrets.
 # After this migration, SQLite becomes the source of truth.
@@ -46,8 +46,14 @@ if "user_email" not in st.session_state:
 if "user_type" not in st.session_state:
     st.session_state.user_type = ""
 
+if "user_name" not in st.session_state:
+    st.session_state.user_name = ""
+
 if "is_authenticated" not in st.session_state:
     st.session_state.is_authenticated = False
+
+if "show_change_password" not in st.session_state:
+    st.session_state.show_change_password = False
 
 # Header
 with st.container(horizontal=True):
@@ -64,10 +70,12 @@ placeholder = st.empty()
 def logout_user():
     st.session_state.user_email = ""
     st.session_state.user_type = ""
+    st.session_state.user_name = ""
     st.session_state.is_authenticated = False
     st.session_state.task_select = ""
     st.session_state.show_user_mgnt = False
     st.session_state.show_schema_mgnt = False
+    st.session_state.show_change_password = False
     st.session_state.backup_zip = None
     st.session_state.backup_ready = False
 
@@ -114,6 +122,11 @@ if not st.session_state.is_authenticated:
                 key="login_email_input",
                 placeholder="name@example.com"
             )
+            password_input = st.text_input(
+                "Enter your password",
+                type="password",
+                key="login_password_input"
+            )
             submitted = st.form_submit_button("Submit", key="login_submit_btn")
 
             if submitted:
@@ -121,31 +134,49 @@ if not st.session_state.is_authenticated:
 
                 if not EMAIL_PATTERN.fullmatch(normalized_email):
                     st.error("Please enter a valid email address.")
+                elif not password_input:
+                    st.error("Please enter your password.")
                 else:
-                    user_type = get_user_type(normalized_email)
-                    if user_type is not None:
-                        st.session_state.user_email = normalized_email
-                        st.session_state.user_type = user_type
+                    user = authenticate_user(normalized_email, password_input)
+                    if user is not None:
+                        st.session_state.user_email = user["email"]
+                        st.session_state.user_type = user["user_type"]
+                        st.session_state.user_name = user["name"]
                         st.session_state.is_authenticated = True
                         st.success("Login successful")
                     else:
-                        st.error("Not Authorised to access")
+                        st.error("Invalid email or password")
 
 # Sidebar logout button after successful login if user is authenticated
 if st.session_state.is_authenticated==True:
-    st.sidebar.button(":red[⏻ Logout]", key="logout_btn", on_click=logout_user)
-    st.sidebar.write(f"Logged in as: {st.session_state.user_email}")
+    with st.sidebar.container(horizontal=True):
+        st.button(
+            ":material/lock_reset: Change Password",
+            key="change_password_btn",
+            on_click=lambda: st.session_state.update({
+                "show_change_password": True,
+                "show_user_mgnt": False,
+                "show_schema_mgnt": False,
+            }),
+        )
+        st.button(":red[⏻ Logout]", key="logout_btn", on_click=logout_user)
+    st.sidebar.write(f":green[Logged in as: {st.session_state.user_name}]")
+
     
-    # Admin-only: User Management button
-    if st.session_state.user_type == "admin":
-        #st.sidebar.divider()
+    # Super-admin-only: User Management button
+    if st.session_state.user_type == "Super-admin":
         if st.sidebar.button(":material/manage_accounts: User Management", width="stretch", key="user_mgmt_btn"):
             st.session_state.show_user_mgnt = True
             st.session_state.show_schema_mgnt = False
+            st.session_state.show_change_password = False
 
+    # Admin tools
+    if st.session_state.user_type in ("admin", "Super-admin"):
+        #st.sidebar.divider()
         if st.sidebar.button(":material/settings: Schema Management", width="stretch", key="schema_mgmt_btn"):
             st.session_state.show_schema_mgnt = True
             st.session_state.show_user_mgnt = False
+            st.session_state.show_change_password = False
             
          #button for backup on click download backup files
         if st.sidebar.button(":material/backup: Backup", width="stretch", key="backup_btn"):
@@ -178,10 +209,11 @@ if st.session_state.is_authenticated==True:
         "🗂️PDF Extractor": "pages/PdfExtracter.py",
         "User Management": "pages/user_management.py",
         "Schema Management": "pages/schema_management.py",
+        "Change Password": "pages/change_password.py",
         "📊Data Visualisation": "pages/charts.py"
     }
 
-    user_pages = {
+    tools_pages = {
         "↔️2B-Purchase-Reco": "pages/reco2B.py",
         "↔️Reconcile Any Data": "pages/reco_any.py",
         "➕Add Files": "pages/add_files.py",
@@ -190,19 +222,28 @@ if st.session_state.is_authenticated==True:
         #"User Management": "pages/user_management.py"
     }
     if st.session_state.user_type == "user":
-        all_pages = user_pages
+        #all pages exclusing user management and schema management
+        all_pages = {k: v for k, v in all_pages.items() if k not in ("User Management", "Schema Management")}
     st.sidebar.divider()
     task_select = st.sidebar.selectbox(
         "🛠️ Tools & Utilities",
-        list(user_pages.keys()),
+        list(tools_pages.keys()),
         placeholder="Type to Search for a Task...",
         key="task_select",
         index=None,
-        on_change=lambda: st.session_state.update({"show_user_mgnt": False, "show_schema_mgnt": False})
+        on_change=lambda: st.session_state.update({
+            "show_user_mgnt": False,
+            "show_schema_mgnt": False,
+            "show_change_password": False,
+        })
     )
 
     # Handle User Management navigation from button click
-    if st.session_state.show_schema_mgnt==True:
+    if st.session_state.show_change_password==True:
+        placeholder.empty()
+        pg = st.navigation([st.Page(all_pages["Change Password"], title="Change Password")])
+        pg.run()
+    elif st.session_state.show_schema_mgnt==True:
         placeholder.empty()
         pg = st.navigation([st.Page(all_pages["Schema Management"], title="Schema Management")])
         pg.run()

@@ -193,7 +193,7 @@ def reload_settings() -> None:
     set_status("info", "settings.json reloaded from file.")
 
 
-if st.session_state.get("user_type") != "admin":
+if st.session_state.get("user_type") not in ("admin", "Super-admin"):
     st.error("Access denied. Admin privileges required.")
     st.stop()
 

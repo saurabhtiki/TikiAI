@@ -62,7 +62,7 @@ if pdf_files:
     # Step 2: Review extracted fields
     # ---------------------------------------------------------------------
     st.subheader("☑️Review Extracted Fields")
-    st.caption(
+    st.write(
         "Field names come straight from labels found in the PDF, prefixed with 'T1 |', "
         "'T2 |', ... showing which table (in document order) each field came from. Tables "
         "that repeat their column header across pages (common for long tables) are "
@@ -96,34 +96,39 @@ if pdf_files:
             "example_value": [_ci_example_value(k) for k in all_keys],
         }
     )
-    st.dataframe(keys_df, use_container_width=True, height=300)
+    st.dataframe(keys_df, width='stretch', height=300)
 
     # Starter mapping built directly from this batch's own keys, so it
     # always matches whatever PDFs were just uploaded.
     starter_map = pd.DataFrame({"Output Column Name": all_keys, "JSON Key": all_keys})
     starter_buf = io.BytesIO()
     starter_map.to_excel(starter_buf, index=False)
-    st.subheader("⬇️:green[Download Sample Mapping Excel]")
-    st.download_button(
-        "Download Mapping Excel",
-        data=starter_buf.getvalue(),key="download_mapping_btn",
-        file_name="starter_mapping.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+    column1, column2 = st.columns(2,border=True)
+    with column1:
+        st.subheader("⬇️:green[Download Sample Mapping Excel]")
+        st.write("Download a ready-made starter mapping straight from your own extracted keys. "
+                 "Then edit the 'Output Column Name' column to whatever you want, and upload it.")
+        st.download_button(
+            "Download Mapping Excel",
+            data=starter_buf.getvalue(),key="download_mapping_btn",
+            file_name="starter_mapping.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 # ---------------------------------------------------------------------------
 # Step 3: Upload mapping Excel
 # ---------------------------------------------------------------------------
-st.subheader("📄Upload mapping Excel")
-st.caption("Two columns required — Col A: output column header, Col B: JSON key (copy from the field list above).")
-mapping_file = st.file_uploader("Upload mapping Excel (.xlsx)", type=["xlsx"], key="mapping")
+    with column2:
+        st.subheader(":green[📄Upload mapping Excel]")
+        st.write("Two columns required — Col A: output column header, Col B: JSON key (copy from the field list above).")
+        mapping_file = st.file_uploader("Upload mapping Excel (.xlsx)", type=["xlsx"], key="mapping")
 
 mapping_df = None
 if mapping_file:
     mapping_df = pd.read_excel(mapping_file, usecols=[0, 1])
     mapping_df.columns = ["output_column", "json_key"]
     mapping_df = mapping_df.dropna(subset=["output_column"])
-    st.dataframe(mapping_df, use_container_width=True)
+    st.dataframe(mapping_df, width='stretch')
 
 # ---------------------------------------------------------------------------
 # Step 4: Generate output
@@ -156,7 +161,7 @@ if extracted and mapping_df is not None:
                 )
 
         out_df = pd.DataFrame(rows)
-        st.dataframe(out_df, use_container_width=True)
+        st.dataframe(out_df, width='stretch')
 
         out_buf = io.BytesIO()
         with pd.ExcelWriter(out_buf, engine="openpyxl") as writer:

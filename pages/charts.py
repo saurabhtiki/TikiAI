@@ -36,18 +36,19 @@ def detect_column_types(df, date_success_threshold=0.8):
         # columns as a dedicated "str" dtype, not classic "object".)
         sample = series.dropna().astype(str)
         if len(sample) > 0:
-            sample = sample.sample(min(50, len(sample)), random_state=1).reset_index(drop=True)
-            try:
-                parsed = pd.to_datetime(sample, errors="coerce", format="mixed")
-            except ValueError:
-                # pandas' format="mixed" can raise "cannot assemble with duplicate keys"
-                # when the sample contains duplicate numeric-like values that it tries
-                # to interpret as time units. In this case, treat as non-date.
-                parsed = pd.Series([pd.NaT] * len(sample))
-            success_rate = parsed.notna().mean()
-            if success_rate >= date_success_threshold:
-                col_types[col] = "date"
-                continue
+                sample = sample.sample(min(50, len(sample)), random_state=1).reset_index(drop=True)
+                parsed = None
+                try:
+                    # Try the fast vectorized parse first
+                    parsed = pd.to_datetime(sample, errors="coerce", format="mixed")
+                except ValueError:
+                    # Fall back to element-wise parsing to avoid pandas trying to
+                    # assemble unit-mappings from whole-series structures
+                    parsed = sample.map(lambda x: pd.to_datetime(x, errors="coerce"))
+                success_rate = parsed.notna().mean()
+                if success_rate >= date_success_threshold:
+                    col_types[col] = "date"
+                    continue
 
         # Categorical vs free text based on cardinality
         nunique = series.nunique(dropna=True)
@@ -73,15 +74,18 @@ def coerce_dates(df, col_types, min_year=1900, max_year=2100):
 
     for col, t in col_types.items():
         if t == "date" and not pd.api.types.is_datetime64_any_dtype(df[col]):
+            parsed = None
             try:
                 parsed = _sane(pd.to_datetime(df[col].to_numpy(), errors="coerce", format="mixed"))
             except ValueError:
-                parsed = _sane(pd.to_datetime(df[col].to_numpy(), errors="coerce", dayfirst=True))
+                # Fall back to element-wise parsing to avoid assembly errors
+                parsed = df[col].map(lambda x: pd.to_datetime(x, errors="coerce"))
             if parsed.notna().mean() < 0.5:
                 try:
                     alt = _sane(pd.to_datetime(df[col].to_numpy(), errors="coerce", dayfirst=True))
                 except ValueError:
-                    alt = parsed
+                    # element-wise dayfirst
+                    alt = df[col].map(lambda x: pd.to_datetime(x, errors="coerce", dayfirst=True))
                 if alt.notna().mean() > parsed.notna().mean():
                     parsed = alt
             df[col] = parsed

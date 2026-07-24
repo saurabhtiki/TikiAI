@@ -38,7 +38,7 @@ with st.form(key="reco2b_form"):
             step=1,
         )
 
-        reconcile_clicked = st.form_submit_button("🔄 Reconcile", type="primary", use_container_width=False)
+        reconcile_clicked = st.form_submit_button("🔄 Reconcile", type="primary", width='content')
 
         if reconcile_clicked:
             if not gst3b_file or not pr_file:
@@ -90,9 +90,9 @@ if st.session_state.get("reco_ok"):
                             f"**Unreconciled 3B rows:** {len(res['unreconciled_3b'])}")
 
                 with st.expander(f"Preview unreconciled {tax} — Purchase Register rows"):
-                    st.dataframe(res["unreconciled_books"].head(50), use_container_width=True)
+                    st.dataframe(res["unreconciled_books"].head(50), width='stretch')
                 with st.expander(f"Preview unreconciled {tax} — 3B GST rows"):
-                    st.dataframe(res["unreconciled_3b"].head(50), use_container_width=True)
+                    st.dataframe(res["unreconciled_3b"].head(50), width='stretch')
 
         itc_df = pd.read_excel(
             io.BytesIO(st.session_state["updated_gst3b_bytes"]),
@@ -100,7 +100,7 @@ if st.session_state.get("reco_ok"):
             header=3,
         )
         st.subheader("ITC Availability — updated counts")
-        st.dataframe(itc_df["ITC Availability"].value_counts().rename_axis("ITC Availability").reset_index(name="Count"), use_container_width=False)
+        st.dataframe(itc_df["ITC Availability"].value_counts().rename_axis("ITC Availability").reset_index(name="Count"), width='content')
 
         st.subheader("⬇️:green[Download Results]")
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -111,7 +111,7 @@ if st.session_state.get("reco_ok"):
                 data=st.session_state["report_bytes"],
                 file_name=f"GST_3B_Purchase_Register_Reconciliation_{ts}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
+                width='stretch',
             )
         with d2:
             st.download_button(
@@ -119,7 +119,7 @@ if st.session_state.get("reco_ok"):
                 data=st.session_state["updated_gst3b_bytes"],
                 file_name=f"3B_WORKING_ITC_Accept_Updated_{ts}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
+                width='stretch',
             )
 else:
     st.info("Upload both files, set the tolerance, and click **Reconcile** to begin.")

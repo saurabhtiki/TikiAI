@@ -22,16 +22,34 @@ st.write("---")
 col1, col2 = st.columns(2)
 with col1:
     left_file = st.file_uploader("Left dataset (data on 'Sheet1')", type=["xlsx"], key="left_upload")
+    #get dataframe from uploaded file and display it in an expander
+    with st.expander("Preview Left dataset",key="left_preview"):
+        leftdata=pd.read_excel(left_file) if left_file else None
+        st.dataframe(leftdata, width='stretch')
 with col2:
     right_file = st.file_uploader("Right dataset (data on 'Sheet1')", type=["xlsx"], key="right_upload")
-
-replace_file = st.file_uploader(
-    "Replace Values file — optional (data on 'Sheet1', columns 'REPLACE' / 'REPLACE WITH'). "
-    "Every match of REPLACE found in a mapping-column value is substituted with REPLACE WITH "
-    "before matching (e.g. 'PVT.' → 'PRIVATE').",
-    type=["xlsx"],
-    key="replace_upload",
-)
+    with st.expander("Preview Right dataset",key="right_preview"):
+        rightdata=pd.read_excel(right_file) if right_file else None
+        st.dataframe(rightdata, width='stretch')
+st.write("To Replace values in mapping columns before matching, upload a Replace Values file (optional). "
+        "Every match of REPLACE found in a mapping-column value is substituted with REPLACE WITH before matching (e.g. 'PVT.' → 'PRIVATE').")
+cols1,cols2=st.columns(2,border=True,vertical_alignment="center")
+with cols1:
+    replace_file = st.file_uploader(
+        "Upload Replace Values file (optional)",
+        type=["xlsx"],
+        key="replace_upload",
+    )
+with cols2:
+    #Download sample Replace Values file: [Replace_Values_Sample.xlsx]
+    with open(f"data/ReplaceValues.xlsx", "rb") as file:
+        st.download_button(
+        "Download sample Replace Values file",
+        data=file,
+        file_name='ReplaceValues.xlsx',
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        width='stretch',
+    )
 
 if not left_file or not right_file:
     st.info("Upload both the Left and Right files to continue.")
@@ -64,37 +82,38 @@ st.write("---")
 # ---------------------------------------------------------------------------
 # Step 2 — Tolerance
 # ---------------------------------------------------------------------------
-st.subheader("2️⃣ Rounding-off tolerance")
-tolerance = st.number_input(
-    "A difference within ± this value is ignored and treated as reconciled",
-    min_value=0,
-    max_value=100,
-    value=1,
-    step=1,
-)
+col31,col32=st.columns(2,border=True,vertical_alignment="center")
+with col31:
+    st.subheader("2️⃣ Rounding-off tolerance")
+    tolerance = st.number_input(
+        "A difference within ± this value is ignored and treated as reconciled",
+        min_value=0,
+        max_value=100,
+        value=1,
+        step=1,
+    )
 
-st.write("---")
 
 # ---------------------------------------------------------------------------
 # Step 2b — Reconciliation method
 # ---------------------------------------------------------------------------
-st.subheader("3️⃣ Reconciliation method")
-method_choice = st.radio(
-    "How should values be compared?",
-    options=["Sum Value", "Row Value"],
-    horizontal=True,
-    help=(
-        "Sum Value: totals of the reconciliation column are aggregated for each matching key "
-        "and compared. Row Value: within each matching key, individual rows on the Left are "
-        "matched one-to-one (top to bottom, first available fit) against Right rows whose "
-        "value is within tolerance; each matched row shows which row on the other side it "
-        "matched."
-    ),
-)
-method = "row" if method_choice == "Row Value" else "sum"
+with col32:
+    st.subheader("3️⃣ Reconciliation method")
+    method_choice = st.radio(
+        "How should values be compared?",
+        options=["Sum Value", "Row Value"],
+        horizontal=True,
+        help=(
+            "Sum Value: totals of the reconciliation column are aggregated for each matching key "
+            "and compared. Row Value: within each matching key, individual rows on the Left are "
+            "matched one-to-one (top to bottom, first available fit) against Right rows whose "
+            "value is within tolerance; each matched row shows which row on the other side it "
+            "matched."
+        ),
+    )
+    method = "row" if method_choice == "Row Value" else "sum"
 
 st.write("---")
-
 # ---------------------------------------------------------------------------
 # Step 3 — Mapping columns
 # ---------------------------------------------------------------------------
@@ -205,13 +224,13 @@ if st.session_state.get("ran_ok"):
             )
 
             with st.expander(f"Preview reconciled — Left rows ({label})"):
-                st.dataframe(res["reconciled_left"].head(50), use_container_width=True)
+                st.dataframe(res["reconciled_left"].head(50), width='stretch')
             with st.expander(f"Preview reconciled — Right rows ({label})"):
-                st.dataframe(res["reconciled_right"].head(50), use_container_width=True)
+                st.dataframe(res["reconciled_right"].head(50), width='stretch')
             with st.expander(f"Preview unreconciled — Left rows ({label})"):
-                st.dataframe(res["unreconciled_left"].head(50), use_container_width=True)
+                st.dataframe(res["unreconciled_left"].head(50), width='stretch')
             with st.expander(f"Preview unreconciled — Right rows ({label})"):
-                st.dataframe(res["unreconciled_right"].head(50), use_container_width=True)
+                st.dataframe(res["unreconciled_right"].head(50), width='stretch')
 
     st.subheader("⬇️ :green[Download Results]")
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -220,5 +239,5 @@ if st.session_state.get("ran_ok"):
         data=st.session_state["report_bytes"],
         file_name=f"Reconciliation_Report_{ts}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
-    )
+        width='stretch',type="primary")
+    
