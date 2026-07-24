@@ -28,7 +28,7 @@ import streamlit as st
 from utils.generic_pdf_extractor import extract_pdf_to_json
 
 st.set_page_config(page_title="PDF -> Excel Extractor", layout="wide")
-st.header("🗂️PDF -> Excel Extractor")
+
 
 st.sidebar.markdown(
     """

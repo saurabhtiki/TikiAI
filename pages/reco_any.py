@@ -8,7 +8,6 @@ import utils.recon_core_reco as rc
 
 st.set_page_config(page_title="Universal Reconciliation Tool", layout="wide")
 
-st.title("↔️ Universal Reconciliation Tool")
 st.sidebar.write(
     "Upload a **Left** and a **Right** dataset, pick the columns that identify a matching "
     "record (mapping columns) and the numeric columns to reconcile, set a rounding-off "
@@ -19,7 +18,7 @@ st.write("---")
 # ---------------------------------------------------------------------------
 # Step 1 — Uploads
 # ---------------------------------------------------------------------------
-st.subheader("1️⃣ Upload files")
+
 col1, col2 = st.columns(2)
 with col1:
     left_file = st.file_uploader("Left dataset (data on 'Sheet1')", type=["xlsx"], key="left_upload")

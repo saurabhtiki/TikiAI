@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 
 
-st.subheader("↔️ Reconcilation  GSTR2B & Purchase Register")
+
 st.sidebar.write(
     "Upload your **GST 3B working file and Purchase Register**, set a rounding-off "
     "tolerance, and reconcile IGST, CGST and SGST invoice-wise."

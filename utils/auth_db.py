@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 import streamlit as st
 
 
-DEFAULT_DB_PATH = os.path.join("data", "auth.db")
+DEFAULT_DB_PATH = os.path.join("data", "coinai.db")
 
 
 def _get_db_path() -> str:

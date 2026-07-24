@@ -36,8 +36,14 @@ def detect_column_types(df, date_success_threshold=0.8):
         # columns as a dedicated "str" dtype, not classic "object".)
         sample = series.dropna().astype(str)
         if len(sample) > 0:
-            sample = sample.sample(min(50, len(sample)), random_state=1)
-            parsed = pd.to_datetime(sample, errors="coerce", format="mixed")
+            sample = sample.sample(min(50, len(sample)), random_state=1).reset_index(drop=True)
+            try:
+                parsed = pd.to_datetime(sample, errors="coerce", format="mixed")
+            except ValueError:
+                # pandas' format="mixed" can raise "cannot assemble with duplicate keys"
+                # when the sample contains duplicate numeric-like values that it tries
+                # to interpret as time units. In this case, treat as non-date.
+                parsed = pd.Series([pd.NaT] * len(sample))
             success_rate = parsed.notna().mean()
             if success_rate >= date_success_threshold:
                 col_types[col] = "date"
@@ -59,13 +65,23 @@ def coerce_dates(df, col_types, min_year=1900, max_year=2100):
     this catches mis-parsed ambiguous values (e.g. a stray '1-5-25' becoming year 0001)
     that would otherwise crash Streamlit's date_input widget."""
     def _sane(parsed):
+        # pd.to_datetime can return Series, DatetimeIndex, or Index — 
+        # convert to Series for uniform dt accessor handling
+        if not isinstance(parsed, pd.Series):
+            parsed = pd.Series(parsed)
         return parsed.where(parsed.dt.year.between(min_year, max_year))
 
     for col, t in col_types.items():
         if t == "date" and not pd.api.types.is_datetime64_any_dtype(df[col]):
-            parsed = _sane(pd.to_datetime(df[col], errors="coerce", format="mixed"))
+            try:
+                parsed = _sane(pd.to_datetime(df[col].to_numpy(), errors="coerce", format="mixed"))
+            except ValueError:
+                parsed = _sane(pd.to_datetime(df[col].to_numpy(), errors="coerce", dayfirst=True))
             if parsed.notna().mean() < 0.5:
-                alt = _sane(pd.to_datetime(df[col], errors="coerce", dayfirst=True))
+                try:
+                    alt = _sane(pd.to_datetime(df[col].to_numpy(), errors="coerce", dayfirst=True))
+                except ValueError:
+                    alt = parsed
                 if alt.notna().mean() > parsed.notna().mean():
                     parsed = alt
             df[col] = parsed
@@ -108,7 +124,7 @@ st.sidebar.title("📁 Data Source")
 uploaded_file = st.sidebar.file_uploader("Upload an Excel file", type=["xlsx", "xls"],key="file_uploader", help="Upload an Excel file to explore its data. Only .xlsx formats are supported.")
 
 if uploaded_file is None:
-    st.title("📊 Excel Data Explorer")
+    #st.title("📊 Excel Data Explorer")
     st.info("Upload an Excel file from the sidebar to get started.")
     #st.stop()
 else:
@@ -119,7 +135,18 @@ else:
     headerrow= st.sidebar.number_input("Select Header Row",key=f"headerrow_{sheet}",min_value=1,max_value=999,value=1,help="Row number containing the column headers")
 
     df_raw = load_excel(uploaded_file, sheet,headerrow).copy()
-    df_raw.columns = [str(c).strip() for c in df_raw.columns]
+    # Strip whitespace and deduplicate column names to avoid duplicate-key issues
+    seen = {}
+    new_cols = []
+    for c in df_raw.columns:
+        c_stripped = str(c).strip()
+        if c_stripped in seen:
+            seen[c_stripped] += 1
+            new_cols.append(f"{c_stripped}_{seen[c_stripped]}")
+        else:
+            seen[c_stripped] = 0
+            new_cols.append(c_stripped)
+    df_raw.columns = new_cols
 
     col_types = detect_column_types(df_raw)
     df_raw = coerce_dates(df_raw, col_types)
@@ -204,7 +231,6 @@ else:
 
     # ----------------------------- Main -----------------------------
 
-    st.title("📊 Excel Data Explorer")
     st.caption(f"Sheet: **{sheet}** | Rows: {len(df_raw)} | Columns: {len(df_raw.columns)}")
 
     tab_overview, tab_charts, tab_pivot = st.tabs(["🔍 Overview", "📈 Charts", "🧮 Pivot Table"])
