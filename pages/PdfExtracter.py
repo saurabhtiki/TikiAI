@@ -123,11 +123,11 @@ if pdf_files:
         st.write("Two columns required — Col A: output column header, Col B: JSON key (copy from the field list above).")
         mapping_file = st.file_uploader("Upload mapping Excel (.xlsx)", type=["xlsx"], key="mapping")
 
-mapping_df = None
-if mapping_file:
-    mapping_df = pd.read_excel(mapping_file, usecols=[0, 1])
-    mapping_df.columns = ["output_column", "json_key"]
-    mapping_df = mapping_df.dropna(subset=["output_column"])
+    mapping_df = None
+    if mapping_file:
+        mapping_df = pd.read_excel(mapping_file, usecols=[0, 1])
+        mapping_df.columns = ["output_column", "json_key"]
+        mapping_df = mapping_df.dropna(subset=["output_column"])
     st.dataframe(mapping_df, width='stretch')
 
 # ---------------------------------------------------------------------------
