@@ -165,9 +165,12 @@ def to_excel_bytes(df: pd.DataFrame, log_rows=None) -> bytes:
     return output.getvalue()
 
 
+# --------------------------------------------------------------------------
+# UI - Header
+# --------------------------------------------------------------------------
 
 with st.sidebar:
-    
+   
     st.markdown(
         "**How it works**\n"
         "1. Upload Excel file(s)\n"
@@ -199,7 +202,7 @@ elif st.session_state.current_upload_sigs:
     st.session_state.current_upload_sigs = set()
 
 if st.session_state.datasets:
-    st.success(f"{len(st.session_state.datasets)} dataset(s) loaded.")
+    
 
     # Inventory table
     inv_rows = []
@@ -213,7 +216,7 @@ if st.session_state.datasets:
             "Columns": df.shape[1],
             "Status": "Used in merge" if name in st.session_state.used_datasets else "Available",
         })
-    st.dataframe(pd.DataFrame(inv_rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(inv_rows), width='stretch', hide_index=True)
 
     # --------------------------------------------------------------------
     # Step 2: Preview
@@ -222,7 +225,7 @@ if st.session_state.datasets:
     for name, df in st.session_state.datasets.items():
         used_tag = " ✅ (already merged)" if name in st.session_state.used_datasets else ""
         with st.expander(f"📄 {name}{used_tag}  —  {df.shape[0]} rows × {df.shape[1]} cols"):
-            st.dataframe(df.head(20), use_container_width=True)
+            st.dataframe(df.head(20), width='stretch')
             st.caption("Column dtypes: " + ", ".join(f"{c} ({t})" for c, t in df.dtypes.astype(str).items()))
 else:
     st.info("Upload at least one Excel file to get started.")
@@ -231,9 +234,8 @@ else:
 # --------------------------------------------------------------------------
 # Step 3+ : Merge rounds
 # --------------------------------------------------------------------------
-with st.container(border=True):
-    st.header("Step 3 — Merge datasets")
-
+st.header("Step 3 — Merge datasets")
+with st.container(key="merge_rounds",border=True):
     remaining = available_datasets()
     working_df = st.session_state.working_df
 
@@ -251,7 +253,7 @@ with st.container(border=True):
 
     if can_merge_round:
         round_no = st.session_state.step_no + 1
-        st.subheader(f"Merge Step {round_no}")
+        #st.subheader(f"Merge Step {round_no}")
 
         col_left, col_right = st.columns(2)
 
@@ -268,8 +270,7 @@ with st.container(border=True):
                 left_df = working_df
                 left_label = st.session_state.working_label
                 left_name = left_label
-                st.info(f"Left = result of previous merge: **{left_label}**  "
-                        f"({left_df.shape[0]} rows × {left_df.shape[1]} cols)")
+                st.info(f"**{left_label}**  ")
 
             left_keys = st.multiselect(
                 "Left column(s) to merge on",
@@ -411,7 +412,7 @@ with st.container(border=True):
                     })
 
                     st.session_state.working_df = merged
-                    new_label = f"MergeStep{round_no}_{sanitize(left_label)}_{sanitize(right_label)}"
+                    new_label = f"MergeStep{round_no} [{sanitize(left_label)}||{sanitize(right_label)}]"
                     st.session_state.working_label = new_label
 
                     if working_df is None:
@@ -430,6 +431,52 @@ with st.container(border=True):
                     })
                     st.session_state.step_no = round_no
                     st.rerun()
+    else:
+        if working_df is not None:
+            st.info("All datasets have been merged in. You can download the final result below.")
+        else:
+            st.info("Upload at least 2 datasets (or 2 sheets) to perform a merge.")
+with st.container(key="merge_log",border=True):
+    # --------------------------------------------------------------------------
+    # Merge log table (shown before the result) — Undo button only on last row
+    # --------------------------------------------------------------------------
+    def undo_last_merge():
+        st.session_state.merge_history.pop()
+        snapshot = st.session_state.state_snapshots.pop()
+        st.session_state.working_df = snapshot["working_df"]
+        st.session_state.working_label = snapshot["working_label"]
+        st.session_state.used_datasets = snapshot["used_datasets"]
+        st.session_state.step_no = snapshot["step_no"]
+
+
+    if st.session_state.merge_history:
+        st.subheader("📜 Merge log")
+
+        col_widths = [0.6, 1.4, 1.4, 1.3, 1.3, 1, 1, 1, 1.2]
+        headers = ["Step", "Left", "Right", "Left keys", "Right keys",
+                "Type", "Rows", "Cols", "Action"]
+        header_cols = st.columns(col_widths)
+        for hc, htext in zip(header_cols, headers):
+            hc.markdown(f"**{htext}**")
+
+        last_idx = len(st.session_state.merge_history) - 1
+        for idx, entry in enumerate(st.session_state.merge_history):
+            row_cols = st.columns(col_widths)
+            row_cols[0].write(entry["Step"])
+            row_cols[1].write(entry["Left"])
+            row_cols[2].write(entry["Right"])
+            row_cols[3].write(entry["Left keys"])
+            row_cols[4].write(entry["Right keys"])
+            row_cols[5].write(entry["Merge type"])
+            row_cols[6].write(entry["Result rows"])
+            row_cols[7].write(entry["Result cols"])
+            if idx == last_idx:
+                if row_cols[8].button("↩️ Undo", key=f"undo_row_{idx}_{entry['Step']}"):
+                    undo_last_merge()
+                    st.rerun()
+            else:
+                row_cols[8].write("")
+
 
 # --------------------------------------------------------------------------
 # Show current merged result + next actions
@@ -438,12 +485,9 @@ if st.session_state.working_df is not None:
     st.header("Current merged result")
     wdf = st.session_state.working_df
     st.write(f"**{st.session_state.working_label}** — {wdf.shape[0]} rows × {wdf.shape[1]} columns")
-    st.dataframe(wdf.head(50), use_container_width=True)
+    st.dataframe(wdf, width='stretch')
 
-    with st.expander("📜 Merge log"):
-        st.dataframe(pd.DataFrame(st.session_state.merge_history), use_container_width=True, hide_index=True)
-
-    action_cols = st.columns(3)
+    action_cols = st.columns(2)
     with action_cols[0]:
         if not all_datasets_used():
             st.info("Scroll up to Step 3 to merge in another remaining dataset.")
@@ -451,19 +495,8 @@ if st.session_state.working_df is not None:
             st.success("All datasets have been merged in.")
 
     with action_cols[1]:
-        if st.session_state.merge_history:
-            if st.button("↩️ Undo last merge"):
-                st.session_state.merge_history.pop()
-                snapshot = st.session_state.state_snapshots.pop()
-                st.session_state.working_df = snapshot["working_df"]
-                st.session_state.working_label = snapshot["working_label"]
-                st.session_state.used_datasets = snapshot["used_datasets"]
-                st.session_state.step_no = snapshot["step_no"]
-                st.rerun()
-
-    with action_cols[2]:
         st.download_button(
-            label="⬇️ Download final merged dataset (Excel)",
+            label="⬇️ Download final merged dataset (Excel)",type="primary",
             data=to_excel_bytes(wdf, st.session_state.merge_history),
             file_name="merged_final.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
